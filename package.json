@@ -1,0 +1,27 @@
+{
+  "name": "itspossible",
+  "version": "1.0.0",
+  "description": "A Discord Bot for Global Ban's (Part of the Possibility Network)",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "possibility",
+    "discord",
+    "network",
+    "community"
+  ],
+  "author": "Ben Handsley <https://benhandsley.co.uk>",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^5.4.3",
+    "discord.js": "github:discordjs/discord.js",
+    "dotenv": "^8.2.0",
+    "enmap": "^5.2.4",
+    "fs": "0.0.1-security",
+    "ms": "^2.1.2",
+    "node-fetch": "^2.6.0",
+    "node-superfetch": "^0.1.10"
+  }
+}
