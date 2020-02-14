@@ -4,7 +4,7 @@ const client = new Discord.Client();
 const fs = require('fs');
 const ms = require('ms');
 const enmap = require('enmap');
-const { PREFIX, MOD_LOGS, TOKEN, IMGUR_TOKEN } = process.env;
+const { PREFIX, MOD_LOGS, TOKEN, IMGUR_TOKEN, HELPFULNESS_IMAGE } = process.env;
 const bans = JSON.parse(fs.readFileSync('./data/bans.json', 'utf8'));
 const fetch = require("node-superfetch");
 
@@ -22,7 +22,8 @@ const defaultSettings = {
 	modRole: "Moderator",
 	adminRole: "Administrator",
 	welcomeChannel: "welcome",
-	welcomeMessage: "Say hello to {{user}}, everyone! We're so happy you could join us!"
+	welcomeMessage: "Say hello to {{user}}, everyone! We're so happy you could join us!",
+	dbtUsage: false
 }
 
 client.on('ready', () => {
@@ -47,66 +48,63 @@ client.on('guildDelete', () => {
 });
 
 client.on("message", async (message) => {
-	// This stops if it's not a guild (obviously), and we ignore all bots.
 	if(!message.guild || message.author.bot) return;
-
-	// We can use ensure() to actually grab the default value for settings,
-	// if the key doesn't already exist. 
+	
 	const guildConf = client.settings.ensure(message.guild.id, defaultSettings);
-
-	// We also stop processing if the message does not start with our prefix.
+	
+	// Mutli Guild Fun! Are we being used for DBT Purposes?
+	if(guildConf.dbtUsage === "true"){
+		if(message.content == "dbt"){
+			// Find a image for the main DBT word.
+		} else if(message.content == "mindfulness"){
+			message.channel.send(`Hey, ${message.author}! Here's a mindfulness exercise to help you.`, { files: [{ attachment: `${HELPFULNESS_IMAGE}`}] });
+		} else if(message.content == "techniques"){
+			// Find a image that goes along with DBT Techniques.
+		}
+	}
+	
 	if(message.content.indexOf(guildConf.prefix) !== 0) return;
-
-	//Then we use the config prefix to get our arguments and command:
+	
 	const args = message.content.split(/\s+/g);
 	const command = args.shift().slice(guildConf.prefix.length).toLowerCase();
-
-	// Alright. Let's make a command! This one changes the value of any key
-	// in the configuration.
+	
 	if(command === "setconf") {
-		// Command is admin only, let's grab the admin value: 
-		const adminRole = message.guild.roles.find("name", guildConf.adminRole);
-		if(!adminRole) return message.reply("Administrator Role Not Found");
-
-		// Then we'll exit if the user is not admin
+		const adminRole = message.guild.roles.find(role => role.name === guildConf.adminRole);
+		if(!adminRole) return message.reply("Guild administration role is not found.");
+		
 		if(!message.member.roles.has(adminRole.id)) {
-		  return message.reply("You're not an admin, sorry!");
-		}
-
-		// Let's get our key and value from the arguments. 
-		// This is array destructuring, by the way. 
-		const [prop, ...value] = args;
-
-		// We can check that the key exists to avoid having multiple useless, 
-		// unused keys in the config:
-		if(!client.settings.has(message.guild.id, prop)){
-		  return message.reply("This key is not in the configuration.");
+			return message.reply("You're not an admin, sorry!");
 		}
 		
-		// Now we can finally change the value. Here we only have strings for values 
-		// so we won't bother trying to make sure it's the right type and such. 
+		const [prop, ...value] = args;
+		
+		if(!client.settings.has(message.guild.id, prop)){
+			return message.reply("This setting is not found in my configuration, you may suggest it in my public Discord Server.");
+		}
+		
 		client.settings.set(message.guild.id, value.join(" "), prop);
-
-		// We can confirm everything's done to the client.
 		message.channel.send(`Guild configuration item ${prop} has been changed to:\n\`${value.join(" ")}\``);
 	}
 	
 	if(command === "ban"){
 		const guildConf = client.settings.ensure(message.guild.id, defaultSettings);
-		
 		const modRole = message.guild.roles.find(role => role.name === guildConf.modRole);
 		
-		if (!modRole)
+		if(!modRole){
 			return console.log(`The ${guildConf.modrole} does not exist.`);
+		}
 
-		if (!message.member.roles.has(modRole.id))
+		if(!message.member.roles.has(modRole.id)){
 			return message.reply("You can't use this command.");
+		}
 
-		if (message.mentions.members.size === 0)
+		if(message.mentions.members.size === 0){
 			return message.reply("Please mention a user to ban");
+		}
 
-		if (!message.guild.me.hasPermission(""))
+		if(!message.guild.me.hasPermission("")){
 			return message.reply("");
+		}
 
 		// Get the first mention from the message
 		const bUser = message.guild.member(message.mentions.users.first()) || message.guild.members.get(args[0]);
@@ -128,7 +126,6 @@ client.on("message", async (message) => {
 		};
 		
 		fs.writeFile('./data/bans.json', JSON.stringify(bans, null, 4), err => {
-			// If there are any problems whilst trying to update the warnings, log an error
 			if (err) console.log(err);
 		});
 
@@ -140,42 +137,10 @@ client.on("message", async (message) => {
 	// Now let's make another command that shows the configuration items.
 	if(command === "showconf"){
 		let configProps = Object.keys(guildConf).map(prop => {
-		  return `${prop}  :  ${guildConf[prop]}\n`;
+			return `${prop}  :  ${guildConf[prop]}\n`;
 		});
-		message.channel.send(`The following are the server's current configuration:
-		\`\`\`${configProps}\`\`\``);
-	}
-	
-	if(command === "hug"){
-		const user = message.mentions.users.first() || message.author.username;
 		
-		message.channel.send(`_**${message.author.username}** hugs **${user}**._`);
-		
-		function getRandom(max){
-			return Math.floor(Math.random() * Math.floor(max));
-		}
-		
-		// Try grab an images
-		const { body } = await fetch.get(`https://api.imgur.com/3/album/8rP1q`).set({ Authorization: `Client-ID ${IMGUR_TOKEN}` });
-		const res = await body.data.images;
-		let _gif = res[getRandom(res.length)].link;
-		message.channel.send({ files: [{ attachment: `${_gif}`}] });
-	}
-	
-	if(command === "kiss"){
-		const user = message.mentions.users.first() || message.author.username;
-		
-		message.channel.send(`_**${message.author.username}** smooches **${user}**._`);
-		
-		function getRandom(max){
-			return Math.floor(Math.random() * Math.floor(max));
-		}
-		
-		// Try grab an images
-		const { body } = await fetch.get(`https://api.imgur.com/3/album/FDGyD`).set({ Authorization: `Client-ID ${IMGUR_TOKEN}` });
-		const res = await body.data.images;
-		let _gif = res[getRandom(res.length)].link;
-		message.channel.send({ files: [{ attachment: `${_gif}`}] });
+		message.channel.send(`The following are the server's current configuration: \`\`\`${configProps}\`\`\``);
 	}
 });
 
