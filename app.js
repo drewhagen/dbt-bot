@@ -23,7 +23,7 @@ const defaultSettings = {
 	adminRole: "Administrator",
 	welcomeChannel: "welcome",
 	welcomeMessage: "Say hello to {{user}}, everyone! We're so happy you could join us!",
-	dbtUsage: false
+	dbtUsage: "false"
 }
 
 client.on('ready', () => {
