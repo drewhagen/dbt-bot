@@ -107,4 +107,7 @@ temp/
 # Configuration
 .env
 
+# Database
+.sqlite
+
 # End of https://www.gitignore.io/api/node
